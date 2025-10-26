@@ -32,6 +32,11 @@ public class Hardcoreplus implements ModInitializer {
     public static final AtomicBoolean PROCESSING = new AtomicBoolean(false);
     public static volatile long WORLD_START_MILLIS = 0L;
     public static volatile String CURRENT_LEVEL_NAME = "world";
+    private static java.nio.file.Path flagsDir(java.nio.file.Path runDir) {
+        var dir = runDir.resolve("HardcorePlus+");
+        try { if (!java.nio.file.Files.exists(dir)) java.nio.file.Files.createDirectories(dir); } catch (Throwable ignored) {}
+        return dir;
+    }
 
     private static final UUID CONSOLE_UUID = new UUID(0L, 0L);
     private static final long CONFIRM_TIMEOUT_MS = 30_000L;
@@ -51,7 +56,9 @@ public class Hardcoreplus implements ModInitializer {
             try { ConfigManager.reload(); } catch (Throwable ignored) {}
             try {
                 var runDir = server.getRunDirectory();
-                var marker = runDir.resolve("hc_reset.flag");
+                var newMarker = flagsDir(runDir).resolve("hc_reset.flag");
+                var oldMarker = runDir.resolve("hc_reset.flag");
+                var marker = Files.exists(newMarker) ? newMarker : oldMarker;
                 if (!Files.exists(marker)) return;
 
                 LOGGER.info("hc_reset.flag detected; preparing to rotate world (Fabric)");
@@ -145,6 +152,8 @@ public class Hardcoreplus implements ModInitializer {
 
                 // remove marker
                 try { Files.deleteIfExists(marker); } catch (IOException ignored) {}
+                // Clean up legacy marker if we handled new one
+                if (!marker.equals(oldMarker)) { try { Files.deleteIfExists(oldMarker); } catch (IOException ignored) {} }
             } catch (Throwable t) {
                 LOGGER.warn("Exception while handling hc_reset.flag (Fabric)", t);
             }
@@ -243,9 +252,13 @@ public class Hardcoreplus implements ModInitializer {
 
                         String baseLevelName = oldLevelName;
                         try {
-                            var baseFile = source.getServer().getRunDirectory().resolve("hc_base_name.txt");
-                            if (Files.exists(baseFile)) {
-                                String tmp = Files.readString(baseFile).trim();
+                            var baseFileNew = flagsDir(source.getServer().getRunDirectory()).resolve("hc_base_name.txt");
+                            var baseFileOld = source.getServer().getRunDirectory().resolve("hc_base_name.txt");
+                            if (Files.exists(baseFileNew)) {
+                                String tmp = Files.readString(baseFileNew).trim();
+                                if (!tmp.isEmpty()) baseLevelName = tmp;
+                            } else if (Files.exists(baseFileOld)) {
+                                String tmp = Files.readString(baseFileOld).trim();
                                 if (!tmp.isEmpty()) baseLevelName = tmp;
                             }
                         } catch (Throwable ignored) {}
@@ -362,12 +375,14 @@ public class Hardcoreplus implements ModInitializer {
                     try (var in = Files.newInputStream(propsFile)) { var p = new Properties(); p.load(in); levelName = Optional.ofNullable(p.getProperty("level-name")).orElse(levelName); }
                 }
                 CURRENT_LEVEL_NAME = levelName;
-                var worldStart = runDir.resolve("hc_world_start.flag");
+                var worldStartNew = flagsDir(runDir).resolve("hc_world_start.flag");
+                var worldStartOld = runDir.resolve("hc_world_start.flag");
+                var worldStart = Files.exists(worldStartNew) ? worldStartNew : worldStartOld;
                 long start = System.currentTimeMillis(); boolean matched = false;
                 if (Files.exists(worldStart)) {
                     try (var r = Files.newBufferedReader(worldStart)) { var pp = new Properties(); pp.load(r); String ln = pp.getProperty("level-name"); String st = pp.getProperty("start"); if (ln != null && ln.equals(levelName) && st != null) { try { start = Long.parseLong(st); matched = true; } catch (NumberFormatException ignored) {} } }
                 }
-                try { var out = new Properties(); out.setProperty("level-name", levelName); out.setProperty("start", Long.toString(start)); try (var w = Files.newBufferedWriter(worldStart)) { out.store(w, "HardcorePlus+ world start timestamp"); } } catch (Throwable t) { LOGGER.info("Failed to write world start flag", t); }
+                try { var out = new Properties(); out.setProperty("level-name", levelName); out.setProperty("start", Long.toString(start)); try (var w = Files.newBufferedWriter(worldStartNew)) { out.store(w, "HardcorePlus+ world start timestamp"); } } catch (Throwable t) { LOGGER.info("Failed to write world start flag", t); }
                 WORLD_START_MILLIS = start;
                 LOGGER.info("World '{}' start time set{}: {}", levelName, matched ? " (restored)" : "", new java.util.Date(start));
 
@@ -381,7 +396,7 @@ public class Hardcoreplus implements ModInitializer {
                             format = format + " {resetcount}";
                         }
                         String baseMotd;
-                        var baseFile = runDir.resolve("hc_base_motd.txt");
+                        var baseFile = flagsDir(runDir).resolve("hc_base_motd.txt");
                         if (Files.exists(baseFile)) {
                             baseMotd = Files.readString(baseFile).trim();
                         } else {
@@ -394,6 +409,7 @@ public class Hardcoreplus implements ModInitializer {
                             try { Files.writeString(baseFile, baseMotd, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING); } catch (Throwable ignored) {}
                         }
                         String newMotd = format.replace("{motd}", baseMotd).replace("{resetcount}", Integer.toString(resets));
+                        newMotd = MotdUtil.applyFormatting(newMotd);
                         try {
                             var p = new Properties();
                             if (Files.exists(propsFile)) { try (var in = Files.newInputStream(propsFile)) { p.load(in); } }
@@ -413,23 +429,31 @@ public class Hardcoreplus implements ModInitializer {
         try { ConfigManager.reload(); } catch (Throwable ignored) {}
         try {
             var runDir = server.getRunDirectory();
-            var existingMarker = runDir.resolve("hc_reset.flag");
-            if (Files.exists(existingMarker)) { LOGGER.warn("hc_reset.flag already exists; a reset is already scheduled. Skipping duplicate request."); return; }
+            var existingMarkerNew = flagsDir(runDir).resolve("hc_reset.flag");
+            var existingMarkerOld = runDir.resolve("hc_reset.flag");
+            if (Files.exists(existingMarkerNew) || Files.exists(existingMarkerOld)) { LOGGER.warn("hc_reset.flag already exists; a reset is already scheduled. Skipping duplicate request."); return; }
 
             var propsFile = runDir.resolve("server.properties");
             var p = new Properties();
             String oldLevelName = "world";
             if (Files.exists(propsFile)) { try (var in = Files.newInputStream(propsFile)) { p.load(in); oldLevelName = Optional.ofNullable(p.getProperty("level-name")).orElse(oldLevelName); } }
 
-            var baseFile = runDir.resolve("hc_base_name.txt");
+            var baseFileNew = flagsDir(runDir).resolve("hc_base_name.txt");
+            var baseFileOld = runDir.resolve("hc_base_name.txt");
             String baseLevelName = oldLevelName;
             try {
-                if (Files.exists(baseFile)) {
-                    baseLevelName = Files.readString(baseFile).trim();
+                if (Files.exists(baseFileNew)) {
+                    baseLevelName = Files.readString(baseFileNew).trim();
                     if (baseLevelName.isEmpty()) baseLevelName = oldLevelName;
+                } else if (Files.exists(baseFileOld)) {
+                    // Migrate legacy root file to designated folder
+                    try { Files.createDirectories(baseFileNew.getParent()); Files.move(baseFileOld, baseFileNew); } catch (Throwable ignored2) {}
+                    String tmp = Files.exists(baseFileNew) ? Files.readString(baseFileNew).trim() : Files.readString(baseFileOld).trim();
+                    if (!tmp.isEmpty()) baseLevelName = tmp; else baseLevelName = oldLevelName;
                 } else {
-                    Files.writeString(baseFile, baseLevelName, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING);
-                    LOGGER.info("Saved base level-name '{}' to {}", baseLevelName, baseFile.toAbsolutePath());
+                    Files.createDirectories(baseFileNew.getParent());
+                    Files.writeString(baseFileNew, baseLevelName, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING);
+                    LOGGER.info("Saved base level-name '{}' to {}", baseLevelName, baseFileNew.toAbsolutePath());
                 }
             } catch (Throwable t) { LOGGER.info("Failed to read/write base level-name; using current level-name as base", t); baseLevelName = oldLevelName; }
             baseLevelName = NameUtil.stripTimeSuffixes(baseLevelName);
@@ -459,10 +483,40 @@ public class Hardcoreplus implements ModInitializer {
             try (var out = Files.newOutputStream(propsFile, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) { p.store(out, "server.properties (modified by HardcorePlus+) new level-name & optional seed"); }
             LOGGER.info("Prepared rotation: old-level-name='{}' -> new-level-name='{}'{}", oldLevelName, newLevelName, newSeedWritten == null ? "" : ", level-seed=" + newSeedWritten);
 
-            // Increment persistent reset counter
-            try { StatsManager.incrementResetCount(runDir); } catch (Throwable t) { LOGGER.info("Failed to increment reset_count", t); }
+            // Increment persistent reset counter and pre-write next MOTD with updated count
+            try {
+                int newCount = StatsManager.incrementResetCount(runDir);
+                if (ConfigManager.getBoolean("motd_enable")) {
+                    var propsFile2 = runDir.resolve("server.properties");
+                    String format = Optional.ofNullable(ConfigManager.get("motd_format")).orElse("{motd} | World Reset Count:{resetcount}");
+                    if (!format.contains("{resetcount}")) format = format + " {resetcount}";
+                    // Ensure base MOTD is captured
+                    var motdBaseFile = flagsDir(runDir).resolve("hc_base_motd.txt");
+                    String baseMotd;
+                    if (Files.exists(motdBaseFile)) {
+                        baseMotd = Files.readString(motdBaseFile).trim();
+                    } else {
+                        baseMotd = "";
+                        try {
+                            var p0 = new Properties();
+                            if (Files.exists(propsFile2)) { try (var in0 = Files.newInputStream(propsFile2)) { p0.load(in0); } }
+                            baseMotd = Optional.ofNullable(p0.getProperty("motd")).orElse("");
+                        } catch (Throwable ignored) {}
+                        try { Files.writeString(motdBaseFile, baseMotd, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING); } catch (Throwable ignored) {}
+                    }
+                    String newMotd = format.replace("{motd}", baseMotd).replace("{resetcount}", Integer.toString(newCount));
+                    newMotd = MotdUtil.applyFormatting(newMotd);
+                    try {
+                        var p2 = new Properties();
+                        if (Files.exists(propsFile2)) { try (var in2 = Files.newInputStream(propsFile2)) { p2.load(in2); } }
+                        p2.setProperty("motd", newMotd);
+                        try (var out2 = Files.newOutputStream(propsFile2, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) { p2.store(out2, "server.properties (modified by HardcorePlus+) update MOTD with reset count (pre-restart)"); }
+                        LOGGER.info("Prewrote MOTD for next start with reset count ({}): {}", newCount, newMotd);
+                    } catch (Throwable t) { LOGGER.info("Failed to prewrite MOTD", t); }
+                }
+            } catch (Throwable t) { LOGGER.info("Failed to increment reset_count", t); }
 
-            var marker = runDir.resolve("hc_reset.flag");
+            var marker = flagsDir(runDir).resolve("hc_reset.flag");
             var mp = new Properties();
             mp.setProperty("requestedBy", "mod");
             mp.setProperty("time", Long.toString(System.currentTimeMillis()));
@@ -485,6 +539,7 @@ public class Hardcoreplus implements ModInitializer {
                             server.stop(false);
                             if (autoRestart) { LOGGER.info("auto_restart is true; server process should be restarted by wrapper if present"); }
                         });
+                        
                     } catch (Throwable ex) { LOGGER.warn("Failed to stop server after delay", ex); }
                 }, "hcp-restart-timer");
                 t.setDaemon(true); t.start();

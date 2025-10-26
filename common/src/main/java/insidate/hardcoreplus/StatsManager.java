@@ -16,7 +16,9 @@ public class StatsManager {
     private static final Logger LOGGER = LoggerFactory.getLogger("hardcoreplus");
 
     private static Path statsPath(Path runDir) {
-        return runDir.resolve("hc_stats.properties");
+        Path dir = runDir.resolve("HardcorePlus+");
+        try { if (!Files.exists(dir)) Files.createDirectories(dir); } catch (IOException ignored) {}
+        return dir.resolve("hc_stats.properties");
     }
 
     public static int getResetCount(Path runDir) {
