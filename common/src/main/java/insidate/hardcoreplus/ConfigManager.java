@@ -34,7 +34,7 @@ public class ConfigManager {
         KEY_COMMENTS.put("restart_delay_seconds", "Seconds to wait before stopping the server after a reset request");
         KEY_COMMENTS.put("auto_restart", "Whether an external wrapper should restart the server after stop (informational)");
         KEY_COMMENTS.put("motd_enable", "If true, modify the server MOTD to include the world reset count");
-    KEY_COMMENTS.put("motd_format", "Format for MOTD when motd_enable=true; tokens: {motd}, {resetcount}. Supports &-codes and hex like #RRGGBB");
+         KEY_COMMENTS.put("motd_format", "Format for MOTD when motd_enable=true; tokens: {motd}, {resetcount}. Supports &-codes and hex like &#RRGGBB");
     }
 
     public static void load() {
@@ -67,6 +67,29 @@ public class ConfigManager {
     public static String get(String key) { return props.getProperty(key); }
     public static boolean getBoolean(String key) { return Boolean.parseBoolean(props.getProperty(key, "false")); }
     public static int getInt(String key, int def) { try { return Integer.parseInt(props.getProperty(key, Integer.toString(def))); } catch (NumberFormatException e) { return def; } }
+    
+    /**
+     * Return all effective config key/value pairs.
+     * - Known keys are returned first in the fixed order of KEY_COMMENTS
+     * - Unknown keys are appended after, sorted by key
+     */
+    public static Map<String, String> getAll() {
+        // Ensure defaults are present in props
+        try {
+            if (props == null || props.isEmpty()) load();
+        } catch (Throwable ignored) {}
+
+        LinkedHashMap<String, String> out = new LinkedHashMap<>();
+        // Known keys in defined order
+        for (String k : KEY_COMMENTS.keySet()) {
+            out.put(k, props.getProperty(k, ""));
+        }
+        // Unknown keys appended in alpha order
+        java.util.TreeSet<String> unknown = new java.util.TreeSet<>();
+        for (String k : props.stringPropertyNames()) if (!KEY_COMMENTS.containsKey(k)) unknown.add(k);
+        for (String k : unknown) out.put(k, props.getProperty(k, ""));
+        return out;
+    }
 
     private static Properties defaults() {
         Properties p = new Properties();

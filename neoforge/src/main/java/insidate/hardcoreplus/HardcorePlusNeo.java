@@ -279,21 +279,12 @@ public class HardcorePlusNeo {
 
 	private int cmdConfig(CommandContext<CommandSourceStack> ctx) {
 		try { ConfigManager.reload(); } catch (Throwable ignored) {}
-		String msg = String.join("\n",
-				"HardcorePlus+ config:",
-				"  new_level_name_format=" + String.valueOf(ConfigManager.get("new_level_name_format")),
-				"  time_format=" + String.valueOf(ConfigManager.get("time_format")),
-				"  force_new_seed=" + ConfigManager.getBoolean("force_new_seed"),
-				"  seed_mode=" + String.valueOf(ConfigManager.get("seed_mode")),
-				"  custom_seed=" + String.valueOf(ConfigManager.get("custom_seed")),
-				"  backup_old_worlds=" + ConfigManager.getBoolean("backup_old_worlds"),
-				"  delete_instead_of_backup=" + ConfigManager.getBoolean("delete_instead_of_backup"),
-				"  backup_folder_name=" + String.valueOf(ConfigManager.get("backup_folder_name")),
-				"  backup_name_format=" + String.valueOf(ConfigManager.get("backup_name_format")),
-				"  restart_delay_seconds=" + ConfigManager.getInt("restart_delay_seconds", 10),
-				"  auto_restart=" + ConfigManager.getBoolean("auto_restart")
-		);
-		ctx.getSource().sendSuccess(() -> Component.literal(msg), false);
+		StringBuilder sb = new StringBuilder();
+		sb.append("HardcorePlus+ config:\n");
+		for (var e : ConfigManager.getAll().entrySet()) {
+			sb.append("  ").append(e.getKey()).append("=").append(String.valueOf(e.getValue())).append("\n");
+		}
+		ctx.getSource().sendSuccess(() -> Component.literal(sb.toString().trim()), false);
 		return 1;
 	}
 

@@ -221,21 +221,13 @@ public class Hardcoreplus implements ModInitializer {
                     .then(CommandManager.literal("config").requires(src -> src.hasPermissionLevel(2)).executes(ctx -> {
                         try { ConfigManager.reload(); } catch (Throwable ignored) {}
                         var source = ctx.getSource();
-                        String msg2 = String.join("\n",
-                                "HardcorePlus+ config:",
-                                "  new_level_name_format=" + String.valueOf(ConfigManager.get("new_level_name_format")),
-                                "  time_format=" + String.valueOf(ConfigManager.get("time_format")),
-                                "  force_new_seed=" + ConfigManager.getBoolean("force_new_seed"),
-                                "  seed_mode=" + String.valueOf(ConfigManager.get("seed_mode")),
-                                "  custom_seed=" + String.valueOf(ConfigManager.get("custom_seed")),
-                                "  backup_old_worlds=" + ConfigManager.getBoolean("backup_old_worlds"),
-                                "  delete_instead_of_backup=" + ConfigManager.getBoolean("delete_instead_of_backup"),
-                                "  backup_folder_name=" + String.valueOf(ConfigManager.get("backup_folder_name")),
-                                "  backup_name_format=" + String.valueOf(ConfigManager.get("backup_name_format")),
-                                "  restart_delay_seconds=" + ConfigManager.getInt("restart_delay_seconds", 10),
-                                "  auto_restart=" + ConfigManager.getBoolean("auto_restart")
-                        );
-                        source.sendFeedback(() -> Text.literal(msg2), false);
+                        var all = ConfigManager.getAll();
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("HardcorePlus+ config:\n");
+                        for (var e : all.entrySet()) {
+                            sb.append("  ").append(e.getKey()).append("=").append(String.valueOf(e.getValue())).append("\n");
+                        }
+                        source.sendFeedback(() -> Text.literal(sb.toString().trim()), false);
                         return 1;
                     }))
                     .then(CommandManager.literal("preview").requires(src -> src.hasPermissionLevel(0)).executes(ctx -> {
