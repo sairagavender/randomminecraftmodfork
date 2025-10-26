@@ -57,6 +57,10 @@ tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
 
 // Include LICENSE in the produced jar (parity with Fabric)
 tasks.named('jar') {
+    // Include shared common classes directly into the NeoForge jar
+    from(project(':common').sourceSets.main.output)
+
+    // Include LICENSE (parity with Fabric)
     from(rootProject.file('LICENSE')) {
         rename { name -> "${name}_${project.base.archivesName.get()}" }
     }

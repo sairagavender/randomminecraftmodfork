@@ -7,12 +7,21 @@
 ![Java](https://img.shields.io/badge/Java-21-orange)
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1-00aa00)
 ![Loaders](https://img.shields.io/badge/Loaders-Fabric%20%7C%20NeoForge-5b8c)
+[![Modrinth](https://img.shields.io/badge/Modrinth-Page-00AF5C?logo=modrinth)](https://modrinth.com/mod/hardcore-plus+)
 
 Server-side Hardcore mod that makes dying more punishing: if anyone dies, the whole server wipes and rotates to a fresh world.
 
 </div>
 
 ## ✨ Features
+- ⚠️ Hardcore means data loss: worlds reset on player death by design
+## ⚠️ Disclaimer
+
+This is a hardcore rotation mod. When installed on a server:
+- If any player dies, all players die and the current world is wiped/rotated.
+- Expect irreversible world loss unless you configure backups and keep external copies.
+- Do not add to existing worlds unless you’re prepared to lose the save on death.
+
 
 - Server-only: drop-in on the server; clients don’t need the mod
 - Hardcore rotation: on death (or command), stop server and swap to a new world
