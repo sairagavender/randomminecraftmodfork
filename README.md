@@ -9,19 +9,18 @@
 ![Loaders](https://img.shields.io/badge/Loaders-Fabric%20%7C%20NeoForge-5b8c)
 [![Modrinth](https://img.shields.io/badge/Modrinth-Page-00AF5C?logo=modrinth)](https://modrinth.com/mod/hardcore-plus+)
 
-Server-side Hardcore mod that makes dying more punishing: if anyone dies, the whole server wipes and rotates to a fresh world.
+Server-side Hardcore mod that makes dying more punishing: if anyone dies, the whole server wipes and generates a fresh world.
 
 </div>
 
-## ✨ Features
-- ⚠️ Hardcore means data loss: worlds reset on player death by design
 ## ⚠️ Disclaimer
 
-This is a hardcore rotation mod. When installed on a server:
-- If any player dies, all players die and the current world is wiped/rotated.
+This is a hardcore multiplayer mod. When installed on a server:
+- If any player dies, all players die and the current world is wiped.
 - Expect irreversible world loss unless you configure backups and keep external copies.
-- Do not add to existing worlds unless you’re prepared to lose the save on death.
+- Do not add to existing hardcore worlds unless you’re prepared to lose the save on death.
 
+## ✨ Features
 
 - Server-only: drop-in on the server; clients don’t need the mod
 - Hardcore rotation: on death (or command), stop server and swap to a new world
@@ -30,7 +29,7 @@ This is a hardcore rotation mod. When installed on a server:
 
 ## 📥 Installation
 
-Download from [Modrinth](https://modrinth.com/mod/hardcore-plus+) and place the jar in your server's `mods` folder.
+Download from [Modrinth](https://modrinth.com/mod/hardcore-plus+) or compile the mod from source and place the jar in your server's `mods` folder.
 
 - Fabric (1.21.1):
   - Requires Fabric Loader ≥ 0.17.3 and Fabric API compatible with 1.21.1
@@ -41,7 +40,7 @@ This is a dedicated server-only mod. Clients do not need to install anything.
 
 ## 🔧 Configuration
 
-Generated at `config/hardcoreplus.properties` on first run. Options cover backups vs delete, naming format, seed policy, and restart delay.
+Generated at `config/hardcoreplus.properties` on first run. 
 
 ## ⌨️ Commands
 
@@ -54,34 +53,9 @@ Key commands:
 - `/hcp masskill` + `confirm` — kill all players and schedule a reset
 - `/hcp reload` — reload config
 
-## 🚀 Admin wrapper (recommended)
+## Auto Restart Server Wrapper (recommended)
 
 Use a simple restart wrapper so the server comes back up after rotation (loop your `java -jar server.jar nogui`).
-
-## 🧱 Building from source
-
-Prereqs: JDK 21.
-
-Windows:
-```powershell
-./gradlew.bat build
-```
-
-Linux/macOS:
-```bash
-./gradlew build
-```
-
-Artifacts:
-- Fabric: `fabric/build/libs/`
-- NeoForge: `neoforge/build/libs/`
-
-## 📦 Support matrix
-
-| Loader   | Minecraft | Status      |
-|----------|-----------|-------------|
-| Fabric   | 1.21.1    | Supported   |
-| NeoForge | 21.1.x    | Supported   |
 
 ## 🤝 Contributing
 
