@@ -33,6 +33,8 @@ public class ConfigManager {
         KEY_COMMENTS.put("custom_seed", "Custom seed to use when seed_mode=custom");
         KEY_COMMENTS.put("restart_delay_seconds", "Seconds to wait before stopping the server after a reset request");
         KEY_COMMENTS.put("auto_restart", "Whether an external wrapper should restart the server after stop (informational)");
+        KEY_COMMENTS.put("motd_enable", "If true, modify the server MOTD to include the world reset count");
+        KEY_COMMENTS.put("motd_format", "Format for MOTD when motd_enable=true; tokens: {motd}, {resetcount}");
     }
 
     public static void load() {
@@ -79,6 +81,8 @@ public class ConfigManager {
         p.setProperty("custom_seed", "");
         p.setProperty("restart_delay_seconds", "10");
         p.setProperty("auto_restart", "true");
+        p.setProperty("motd_enable", "false");
+        p.setProperty("motd_format", "{motd} | World Reset Count:{resetcount}");
         return p;
     }
 

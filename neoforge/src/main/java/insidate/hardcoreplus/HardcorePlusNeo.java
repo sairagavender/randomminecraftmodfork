@@ -178,6 +178,39 @@ public class HardcorePlusNeo {
 			try (var w = Files.newBufferedWriter(worldStart)) { out.store(w, "HardcorePlus+ world start timestamp"); }
 			WORLD_START_MILLIS = start;
 			LOGGER.info("World '{}' start time set{}: {}", levelName, matched ? " (restored)" : "", new java.util.Date(start));
+
+			// Optionally update MOTD with reset count
+			try {
+				if (ConfigManager.getBoolean("motd_enable")) {
+					int resets = StatsManager.getResetCount(runDir);
+					String format = Optional.ofNullable(ConfigManager.get("motd_format")).orElse("{motd} | World Reset Count:{resetcount}");
+					if (!format.contains("{resetcount}")) {
+						LOGGER.info("motd_format missing {resetcount}; appending token at end.");
+						format = format + " {resetcount}";
+					}
+					String baseMotd;
+					Path baseFile = runDir.resolve("hc_base_motd.txt");
+					if (Files.exists(baseFile)) {
+						baseMotd = Files.readString(baseFile).trim();
+					} else {
+						baseMotd = "";
+						try {
+							Properties p = new Properties();
+							if (Files.exists(propsFile)) { try (var in = Files.newInputStream(propsFile)) { p.load(in); } }
+							baseMotd = Optional.ofNullable(p.getProperty("motd")).orElse("");
+						} catch (Throwable ignored) {}
+						try { Files.writeString(baseFile, baseMotd, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING); } catch (Throwable ignored) {}
+					}
+					String newMotd = format.replace("{motd}", baseMotd).replace("{resetcount}", Integer.toString(resets));
+					try {
+						Properties p = new Properties();
+						if (Files.exists(propsFile)) { try (var in = Files.newInputStream(propsFile)) { p.load(in); } }
+						p.setProperty("motd", newMotd);
+						try (var fos = Files.newOutputStream(propsFile, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) { p.store(fos, "server.properties (modified by HardcorePlus+) update MOTD with reset count"); }
+						LOGGER.info("Updated MOTD with reset count ({}): {}", resets, newMotd);
+					} catch (Throwable t) { LOGGER.info("Failed to update MOTD", t); }
+				}
+			} catch (Throwable t) { LOGGER.info("MOTD update skipped due to error", t); }
 		} catch (Throwable t) {
 			LOGGER.warn("Failed to initialize world start tracking (NeoForge)", t);
 		}
@@ -191,6 +224,7 @@ public class HardcorePlusNeo {
 				.executes(ctx -> { ctx.getSource().sendSuccess(() -> Component.literal("Use /hcp help for available commands."), false); return 1; })
 				.then(Commands.literal("help").executes(this::cmdHelp))
 				.then(Commands.literal("status").executes(this::cmdStatus))
+				.then(Commands.literal("config").requires(s -> s.hasPermission(2)).executes(this::cmdConfig))
 				.then(Commands.literal("preview").executes(this::cmdPreview))
 				.then(Commands.literal("reload").requires(s -> s.hasPermission(2)).executes(this::cmdReload))
 				.then(Commands.literal("reset").requires(s -> s.hasPermission(2))
@@ -216,11 +250,32 @@ public class HardcorePlusNeo {
 			sb.append("  /hcp masskill confirm - Confirm mass-kill and schedule restart\n");
 			sb.append("  /hcp reset - Schedule world rotation (confirm required)\n");
 			sb.append("  /hcp reset confirm - Confirm rotation and stop server\n");
+			sb.append("  /hcp config - Show effective config\n");
 			sb.append("  /hcp reload - Reload config file\n");
 		} else {
-			sb.append("  (Op-only) masskill, reset, reload\n");
+			sb.append("  (Op-only) masskill, reset, config, reload\n");
 		}
 		ctx.getSource().sendSuccess(() -> Component.literal(sb.toString()), false);
+		return 1;
+	}
+
+	private int cmdConfig(CommandContext<CommandSourceStack> ctx) {
+		try { ConfigManager.reload(); } catch (Throwable ignored) {}
+		String msg = String.join("\n",
+				"HardcorePlus+ config:",
+				"  new_level_name_format=" + String.valueOf(ConfigManager.get("new_level_name_format")),
+				"  time_format=" + String.valueOf(ConfigManager.get("time_format")),
+				"  force_new_seed=" + ConfigManager.getBoolean("force_new_seed"),
+				"  seed_mode=" + String.valueOf(ConfigManager.get("seed_mode")),
+				"  custom_seed=" + String.valueOf(ConfigManager.get("custom_seed")),
+				"  backup_old_worlds=" + ConfigManager.getBoolean("backup_old_worlds"),
+				"  delete_instead_of_backup=" + ConfigManager.getBoolean("delete_instead_of_backup"),
+				"  backup_folder_name=" + String.valueOf(ConfigManager.get("backup_folder_name")),
+				"  backup_name_format=" + String.valueOf(ConfigManager.get("backup_name_format")),
+				"  restart_delay_seconds=" + ConfigManager.getInt("restart_delay_seconds", 10),
+				"  auto_restart=" + ConfigManager.getBoolean("auto_restart")
+		);
+		ctx.getSource().sendSuccess(() -> Component.literal(msg), false);
 		return 1;
 	}
 
@@ -472,6 +527,7 @@ public class HardcorePlusNeo {
 			LOGGER.info("Prepared rotation: old-level-name='{}' -> new-level-name='{}'{}", oldLevelName, newLevelName, newSeedWritten == null ? "" : ", level-seed=" + newSeedWritten);
 
 			// Write marker for startup handler
+			try { StatsManager.incrementResetCount(runDir); } catch (Throwable t) { LOGGER.info("Failed to increment reset_count", t); }
 			Path marker = runDir.resolve("hc_reset.flag");
 			Properties mp = new Properties();
 			mp.setProperty("requestedBy", "mod");

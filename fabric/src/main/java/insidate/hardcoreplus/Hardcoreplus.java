@@ -370,6 +370,39 @@ public class Hardcoreplus implements ModInitializer {
                 try { var out = new Properties(); out.setProperty("level-name", levelName); out.setProperty("start", Long.toString(start)); try (var w = Files.newBufferedWriter(worldStart)) { out.store(w, "HardcorePlus+ world start timestamp"); } } catch (Throwable t) { LOGGER.info("Failed to write world start flag", t); }
                 WORLD_START_MILLIS = start;
                 LOGGER.info("World '{}' start time set{}: {}", levelName, matched ? " (restored)" : "", new java.util.Date(start));
+
+                // Optionally update MOTD with reset count
+                try {
+                    if (ConfigManager.getBoolean("motd_enable")) {
+                        int resets = StatsManager.getResetCount(runDir);
+                        String format = Optional.ofNullable(ConfigManager.get("motd_format")).orElse("{motd} | World Reset Count:{resetcount}");
+                        if (!format.contains("{resetcount}")) {
+                            LOGGER.info("motd_format missing {resetcount}; appending token at end.");
+                            format = format + " {resetcount}";
+                        }
+                        String baseMotd;
+                        var baseFile = runDir.resolve("hc_base_motd.txt");
+                        if (Files.exists(baseFile)) {
+                            baseMotd = Files.readString(baseFile).trim();
+                        } else {
+                            baseMotd = "";
+                            try {
+                                var p = new Properties();
+                                if (Files.exists(propsFile)) { try (var in = Files.newInputStream(propsFile)) { p.load(in); } }
+                                baseMotd = Optional.ofNullable(p.getProperty("motd")).orElse("");
+                            } catch (Throwable ignored) {}
+                            try { Files.writeString(baseFile, baseMotd, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING); } catch (Throwable ignored) {}
+                        }
+                        String newMotd = format.replace("{motd}", baseMotd).replace("{resetcount}", Integer.toString(resets));
+                        try {
+                            var p = new Properties();
+                            if (Files.exists(propsFile)) { try (var in = Files.newInputStream(propsFile)) { p.load(in); } }
+                            p.setProperty("motd", newMotd);
+                            try (var out = Files.newOutputStream(propsFile, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) { p.store(out, "server.properties (modified by HardcorePlus+) update MOTD with reset count"); }
+                            LOGGER.info("Updated MOTD with reset count ({}): {}", resets, newMotd);
+                        } catch (Throwable t) { LOGGER.info("Failed to update MOTD", t); }
+                    }
+                } catch (Throwable t) { LOGGER.info("MOTD update skipped due to error", t); }
             } catch (Throwable t) { LOGGER.info("Failed to initialize world start tracking", t); }
         });
     }
@@ -425,6 +458,9 @@ public class Hardcoreplus implements ModInitializer {
 
             try (var out = Files.newOutputStream(propsFile, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) { p.store(out, "server.properties (modified by HardcorePlus+) new level-name & optional seed"); }
             LOGGER.info("Prepared rotation: old-level-name='{}' -> new-level-name='{}'{}", oldLevelName, newLevelName, newSeedWritten == null ? "" : ", level-seed=" + newSeedWritten);
+
+            // Increment persistent reset counter
+            try { StatsManager.incrementResetCount(runDir); } catch (Throwable t) { LOGGER.info("Failed to increment reset_count", t); }
 
             var marker = runDir.resolve("hc_reset.flag");
             var mp = new Properties();
