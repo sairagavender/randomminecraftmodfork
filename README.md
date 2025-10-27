@@ -64,4 +64,4 @@ PRs and issues welcome.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+APACHE 2.0 — see [LICENSE](LICENSE).
