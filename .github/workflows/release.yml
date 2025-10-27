@@ -32,6 +32,53 @@ jobs:
           chmod +x ./gradlew
           ./gradlew --no-daemon build
 
+      - name: derive version and artifact metadata
+        id: meta
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Detected version: ${VERSION}"
+          FABRIC_MC=$(grep '^minecraft_version=' fabric/gradle.properties | cut -d'=' -f2)
+          NEOFORGE_MC=$(grep '^minecraft_version=' neoforge/gradle.properties | cut -d'=' -f2)
+          # Resolve built runtime jars (exclude sources)
+          FABRIC_FILE=$(ls fabric/build/libs/*fabric*.jar | head -n 1)
+          NEOFORGE_FILE=$(ls neoforge/build/libs/*neoforge*.jar | head -n 1)
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "fabric_mc=${FABRIC_MC}" >> "$GITHUB_OUTPUT"
+          echo "neoforge_mc=${NEOFORGE_MC}" >> "$GITHUB_OUTPUT"
+          echo "fabric_file=${FABRIC_FILE}" >> "$GITHUB_OUTPUT"
+          echo "neoforge_file=${NEOFORGE_FILE}" >> "$GITHUB_OUTPUT"
+
+      - name: Modrinth Publish (Fabric)
+        uses: cloudnode-pro/modrinth-publish@v2.1.4
+        with:
+          token: ${{ secrets.MODRINTH_UPLOAD }}
+          project: fWWnGrTh
+          name: HardcorePlus+ ${{ steps.meta.outputs.version }}
+          version: ${{ steps.meta.outputs.version }}
+          changelog: See GitHub release notes for v${{ steps.meta.outputs.version }} → https://github.com/${{ github.repository }}/releases/tag/v${{ steps.meta.outputs.version }}
+          loaders: |-
+            fabric
+          game-versions: ${{ steps.meta.outputs.fabric_mc }}
+          files: ${{ steps.meta.outputs.fabric_file }}
+          dependencies: |-
+            [
+              {"project_id": "P7dR8mSH", "dependency_type": "required"}
+            ]
+
+      - name: Modrinth Publish (NeoForge)
+        uses: cloudnode-pro/modrinth-publish@v2.1.4
+        with:
+          token: ${{ secrets.MODRINTH_UPLOAD }}
+          project: fWWnGrTh
+          name: HardcorePlus+ ${{ steps.meta.outputs.version }}
+          version: ${{ steps.meta.outputs.version }}
+          changelog: See GitHub release notes for v${{ steps.meta.outputs.version }} → https://github.com/${{ github.repository }}/releases/tag/v${{ steps.meta.outputs.version }}
+          loaders: |-
+            neoforge
+          game-versions: ${{ steps.meta.outputs.neoforge_mc }}
+          files: ${{ steps.meta.outputs.neoforge_file }}
+
       - name: create GitHub release and upload artifacts
         uses: softprops/action-gh-release@v2
         with:

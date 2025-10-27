@@ -3,10 +3,13 @@ plugins {
     id 'maven-publish'
 }
 
-version = project.mod_version
+// Name jars using: HardcorePlus+-{mod_version}+{minecraft_version}.jar
+// Example: HardcorePlus+-1.2.0-fabric+1.21.1.jar
+version = "${project.mod_version}+${project.minecraft_version}"
 group = project.maven_group
 
-base { archivesName = project.archives_base_name }
+// Use a readable display name for the archive base (avoid spaces in filenames)
+base { archivesName = 'HardcorePlus+' }
 
 repositories { }
 

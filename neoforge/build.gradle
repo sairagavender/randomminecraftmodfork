@@ -4,7 +4,9 @@ plugins {
     id 'net.neoforged.moddev' version '1.0.11'
 }
 
-version = mod_version
+// Name jars using: HardcorePlus+-{mod_version}+{minecraft_version}.jar
+// Example: HardcorePlus+-1.2.0-neoforge+1.21.1.jar
+version = "${mod_version}+${minecraft_version}"
 group = mod_group_id
 
 repositories { mavenCentral() }
@@ -15,7 +17,8 @@ dependencies {
     implementation project(":common")
 }
 
-base { archivesName = mod_id }
+// Use a readable display name for the archive base (avoid spaces in filenames)
+base { archivesName = 'HardcorePlus+' }
 
 neoForge {
     version = neo_version
