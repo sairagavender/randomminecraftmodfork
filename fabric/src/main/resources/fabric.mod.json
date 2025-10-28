@@ -3,13 +3,13 @@
   "id": "hardcoreplus",
   "version": "${version}",
   "name": "HardcorePlus",
-  "description": "Makes multiplayer Hardcore more punishing by killing all players on death.",
+  "description": "Server-side Hardcore mod that makes dying more punishing",
   "authors": ["Insidate"],
   "contact": {
     "homepage": "https://fabricmc.net/",
     "sources": "https://github.com/DeisDev/HardcorePlusPlus"
   },
-  "license": "MIT",
+  "license": "Apache 2.0",
   "icon": "assets/hardcoreplus/icon.png",
   "environment": "server",
   "entrypoints": { "main": ["insidate.hardcoreplus.Hardcoreplus"] },
