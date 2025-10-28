@@ -12,11 +12,7 @@ on:
 
 jobs:
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-24.04, windows-2022]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-24.04
     steps:
       - name: checkout repository
         uses: actions/checkout@v4
@@ -37,12 +33,12 @@ jobs:
       - name: capture build artifacts (Fabric)
         uses: actions/upload-artifact@v4
         with:
-          name: Fabric-${{ matrix.os }}
+          name: Fabric
           path: |
             fabric/build/libs/*.jar
       - name: capture build artifacts (NeoForge)
         uses: actions/upload-artifact@v4
         with:
-          name: NeoForge-${{ matrix.os }}
+          name: NeoForge
           path: |
             neoforge/build/libs/*.jar
