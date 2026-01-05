@@ -5,7 +5,7 @@
 [![Build](https://img.shields.io/github/actions/workflow/status/DeisDev/HardcorePlusPlus/build.yml?branch=main&logo=github&label=CI)](https://github.com/DeisDev/HardcorePlusPlus/actions)
 [![License](https://img.shields.io/github/license/DeisDev/HardcorePlusPlus)](LICENSE)
 ![Java](https://img.shields.io/badge/Java-21-orange)
-![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1_%7C_1.21.8-lime)
+![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1_%7C_1.21.8_%7C_1.21.10_%7C_1.21.11-lime)
 ![Loaders](https://img.shields.io/badge/Loaders-Fabric%20%7C%20NeoForge-5b8c)
 [![Modrinth](https://img.shields.io/badge/Modrinth-Page-00AF5C?logo=modrinth)](https://modrinth.com/mod/hardcore-plus+)
 
@@ -31,18 +31,13 @@ This is a hardcore multiplayer mod. When installed on a server:
 
 Download from [Modrinth](https://modrinth.com/mod/hardcore-plus+) or compile the mod from source and place the jar in your server's `mods` folder.
 
-- Fabric (1.21.1):
-  - Requires Fabric Loader ≥ 0.17.3 and Fabric API compatible with 1.21.1
-- NeoForge (1.21.1):
-  - Requires NeoForge 21.1.x
-
 This is a dedicated server-only mod. Clients do not need to install anything.
 
-## 🔧 Configuration
+## Configuration
 
 Generated at `config/hardcoreplus.properties` on first run. 
 
-## ⌨️ Commands
+## Commands
 
 All commands are under `/hcp`.
 
@@ -57,6 +52,8 @@ Key commands:
 ## Auto Restart Server Wrapper (recommended)
 
 Use a simple restart wrapper so the server comes back up after wipe (loop your `java -jar server.jar nogui`).
+
+I strongly recommend this so you do not have to manually restart the server everytime. 
 
 ## Contributing
 
