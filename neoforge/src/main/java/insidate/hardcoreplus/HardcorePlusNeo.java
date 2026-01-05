@@ -122,9 +122,15 @@ public class HardcorePlusNeo {
 						LOGGER.info("Moved old world to {}", backupTarget.toAbsolutePath());
 						moved = true;
 					} catch (IOException e) {
-						// This is common on Windows when files are locked; fallback paths handle it
-						LOGGER.info("Atomic move failed; trying non-atomic (expected on Windows): {}", e.toString());
-						try { Files.move(worldDir, backupTarget); moved = true; } catch (IOException ex) { LOGGER.info("Non-atomic move failed; copying (expected on Windows): {}", ex.toString()); }
+						LOGGER.info("Atomic move failed; attempting non-atomic move: {}", e.toString());
+						try {
+							Files.move(worldDir, backupTarget);
+							LOGGER.info("Moved old world to {} (non-atomic)", backupTarget.toAbsolutePath());
+							moved = true;
+						} catch (IOException ex) {
+							// On Linux, cross-filesystem moves fail entirely; on Windows, locked files cause failure
+							LOGGER.info("Non-atomic move failed (cross-filesystem or locked files); falling back to copy+delete: {}", ex.toString());
+						}
 					}
 					if (!moved) {
 						try {
@@ -156,6 +162,8 @@ public class HardcorePlusNeo {
 			}
 
 			try { Files.deleteIfExists(marker); } catch (IOException ignored) {}
+			// Clean up legacy marker location if we handled the new location
+			if (!marker.equals(markerOld)) { try { Files.deleteIfExists(markerOld); } catch (IOException ignored) {} }
 		} catch (Throwable t) {
 			LOGGER.error("Exception while handling hc_reset.flag (NeoForge)", t);
 		}

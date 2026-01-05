@@ -101,12 +101,14 @@ public class Hardcoreplus implements ModInitializer {
                             LOGGER.info("Moved old world to {}", backupTarget.toAbsolutePath());
                             moved = true;
                         } catch (IOException e) {
-                            LOGGER.info("Atomic move failed; attempting non-atomic move (expected on Windows if locked): {}", e.toString());
+                            LOGGER.info("Atomic move failed; attempting non-atomic move: {}", e.toString());
                             try {
                                 Files.move(worldDir, backupTarget);
+                                LOGGER.info("Moved old world to {} (non-atomic)", backupTarget.toAbsolutePath());
                                 moved = true;
                             } catch (IOException ex) {
-                                LOGGER.info("Non-atomic move failed; will attempt copy fallback: {}", ex.toString());
+                                // On Linux, cross-filesystem moves fail entirely; on Windows, locked files cause failure
+                                LOGGER.info("Non-atomic move failed (cross-filesystem or locked files); falling back to copy+delete: {}", ex.toString());
                             }
                         }
 
@@ -550,13 +552,16 @@ public class Hardcoreplus implements ModInitializer {
         try { ConfigManager.reload(); } catch (Throwable ignored) {}
         try {
             var runDir = server.getRunDirectory();
-            var existingMarker = runDir.resolve("hc_reset.flag");
-            if (Files.exists(existingMarker)) { LOGGER.debug("Reset already scheduled; suppressing duplicate restart announcement"); return; }
+            var existingMarkerNew = flagsDir(runDir).resolve("hc_reset.flag");
+            var existingMarkerOld = runDir.resolve("hc_reset.flag");
+            if (Files.exists(existingMarkerNew) || Files.exists(existingMarkerOld)) { LOGGER.debug("Reset already scheduled; suppressing duplicate restart announcement"); return; }
             int delay = ConfigManager.getInt("restart_delay_seconds", 10);
             long startMs = WORLD_START_MILLIS;
             if (startMs <= 0) {
                 try {
-                    var worldStart = runDir.resolve("hc_world_start.flag");
+                    var worldStartNew = flagsDir(runDir).resolve("hc_world_start.flag");
+                    var worldStartOld = runDir.resolve("hc_world_start.flag");
+                    var worldStart = Files.exists(worldStartNew) ? worldStartNew : worldStartOld;
                     if (Files.exists(worldStart)) {
                         var pp = new Properties(); try (var r = Files.newBufferedReader(worldStart)) { pp.load(r); }
                         String ln = pp.getProperty("level-name"); String st = pp.getProperty("start");

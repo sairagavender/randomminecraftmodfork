@@ -34,7 +34,7 @@ public class ConfigManager {
         KEY_COMMENTS.put("restart_delay_seconds", "Seconds to wait before stopping the server after a reset request");
         KEY_COMMENTS.put("auto_restart", "Whether an external wrapper should restart the server after stop (informational)");
         KEY_COMMENTS.put("motd_enable", "If true, modify the server MOTD to include the world reset count");
-         KEY_COMMENTS.put("motd_format", "Format for MOTD when motd_enable=true; tokens: {motd}, {resetcount}. Supports &-codes and hex like &#RRGGBB");
+        KEY_COMMENTS.put("motd_format", "Format for MOTD when motd_enable=true; tokens: {motd}, {resetcount}. Supports &-codes and hex like &#RRGGBB");
     }
 
     public static void load() {
