@@ -38,7 +38,7 @@ public class PlayerDeathMixin {
 
         // SaveProperties / world properties expose whether the world is hardcore
         try {
-            boolean isHardcore = false;
+            boolean isHardcore = true;
             if (server.getSaveProperties() != null) {
                 isHardcore = server.getSaveProperties().isHardcore();
             }
