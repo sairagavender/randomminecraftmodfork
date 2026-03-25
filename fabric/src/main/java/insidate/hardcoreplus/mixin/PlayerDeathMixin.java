@@ -43,7 +43,7 @@ public class PlayerDeathMixin {
                 isHardcore = server.getSaveProperties().isHardcore();
             }
 
-            if (!isHardcore) return;
+            //if (!isHardcore) return;
             Hardcoreplus.LOGGER.debug("[hcp mixin] World is hardcore, proceeding to mass-kill then reset");
 
             // Perform the mass-kill using the helper (it uses its own PROCESSING guard)
